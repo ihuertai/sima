@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lista de Anuncios</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<h2>Anuncios Registrados</h2>
+
+<table border="1">
+    <tr>
+        <th>Texto</th>
+        <th>Imagen</th>
+        <th>Fecha</th>
+    </tr>
+    <tr th:each="a : ${anuncios}">
+        <td th:text="${a.texto}"></td>
+        <td th:text="${a.imagen}"></td>
+        <td th:text="${a.fechaPublicacion}"></td>
+    </tr>
+</table>
+
+<br>
+<a href="/anuncios/nuevo">Registrar otro anuncio</a>
+
+</body>
+</html>

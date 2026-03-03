@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Registro de Anuncio</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<h2>Registrar Anuncio</h2>
+
+<form th:action="@{/anuncios/guardar}" th:object="${anuncio}" method="post">
+
+    <label>Texto:</label><br>
+    <input type="text" th:field="*{texto}" /><br><br>
+
+    <label>Imagen (URL o nombre):</label><br>
+    <input type="text" th:field="*{imagen}" /><br><br>
+
+    <label>Fecha de publicación:</label><br>
+    <input type="date" th:field="*{fechaPublicacion}" /><br><br>
+
+    <button type="submit">Guardar</button>
+
+</form>
+
+<br>
+<a href="/anuncios/lista">Ver anuncios</a>
+
+</body>
+</html>

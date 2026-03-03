@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Enviar Anuncio</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<h2>Enviar Anuncio por WhatsApp</h2>
+
+<form th:action="@{/envio/enviar}" method="post">
+
+    <label>Selecciona Cliente:</label><br>
+    <select name="clienteIndex">
+        <option th:each="c, iterStat : ${clientes}"
+                th:value="${iterStat.index}"
+                th:text="${c.nombre + ' - ' + c.telefono}">
+        </option>
+    </select>
+
+    <br><br>
+
+    <label>Selecciona Anuncio:</label><br>
+    <select name="anuncioIndex">
+        <option th:each="a, iterStat : ${anuncios}"
+                th:value="${iterStat.index}"
+                th:text="${a.texto}">
+        </option>
+    </select>
+
+    <br><br>
+
+    <button type="submit">Enviar</button>
+
+</form>
+
+</body>
+</html>
