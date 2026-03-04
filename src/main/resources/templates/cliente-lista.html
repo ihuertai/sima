@@ -1,28 +1,89 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <title>Lista de Clientes</title>
-    <meta charset="UTF-8">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
-<body>
 
-<h2>Clientes Registrados</h2>
+<body class="bg-light">
 
-<table border="1">
-    <tr>
-        <th>Nombre</th>
-        <th>Correo</th>
-        <th>Teléfono</th>
-    </tr>
-    <tr th:each="c : ${clientes}">
-        <td th:text="${c.nombre}"></td>
-        <td th:text="${c.correo}"></td>
-        <td th:text="${c.telefono}"></td>
-    </tr>
-</table>
+<div class="container py-5">
 
-<br>
-<a href="/clientes/nuevo">Registrar otro cliente</a>
+
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h1 class="titulo-sima mb-0">SIMA</h1>
+
+        <div class="d-flex gap-2">
+
+            <a href="/dashboard" class="btn btn-primary">
+                Menú
+            </a>
+
+
+
+            <a href="/anuncios/nuevo" class="btn btn-primary">
+                Anuncio
+            </a>
+            <a href="/anuncios/lista" class="btn btn-primary">
+                Lista de anuncio
+            </a>
+
+
+
+            <a href="/envio" class="btn btn-primary">
+                Enviar
+            </a>
+
+        </div>
+    </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <h3 class="mb-0">Lista de Clientes</h3>
+
+        <a href="/clientes/nuevo" class="btn btn-primary">
+            Agregar Cliente
+        </a>
+
+    </div>
+
+
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <table class="table table-striped table-hover mb-0">
+
+                <thead class="table-light">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Teléfono</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="cliente : ${clientes}">
+                    <td th:text="${cliente.nombre}"></td>
+                    <td th:text="${cliente.correo}"></td>
+                    <td th:text="${cliente.telefono}"></td>
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
 
 </body>
 </html>

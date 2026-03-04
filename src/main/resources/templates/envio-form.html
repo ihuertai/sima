@@ -1,38 +1,104 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <title>Enviar Anuncio</title>
     <meta charset="UTF-8">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
 </head>
-<body>
 
-<h2>Enviar Anuncio por WhatsApp</h2>
+<body class="bg-light">
 
-<form th:action="@{/envio/enviar}" method="post">
+<div class="container py-5">
 
-    <label>Selecciona Cliente:</label><br>
-    <select name="clienteIndex">
-        <option th:each="c, iterStat : ${clientes}"
-                th:value="${iterStat.index}"
-                th:text="${c.nombre + ' - ' + c.telefono}">
-        </option>
-    </select>
 
-    <br><br>
 
-    <label>Selecciona Anuncio:</label><br>
-    <select name="anuncioIndex">
-        <option th:each="a, iterStat : ${anuncios}"
-                th:value="${iterStat.index}"
-                th:text="${a.texto}">
-        </option>
-    </select>
+    <div class="d-flex justify-content-between align-items-center mb-4">
 
-    <br><br>
+        <h1 class="titulo-sima mb-0">SIMA</h1>
 
-    <button type="submit">Enviar</button>
+        <div class="d-flex gap-2">
 
-</form>
+            <a href="/dashboard" class="btn btn-primary">
+                Menú
+            </a>
+
+
+            <a href="/clientes/nuevo" class="btn btn-primary">
+                Clientes
+            </a>
+            <a href="/clientes/lista" class="btn btn-primary">
+                Lista de clientes
+            </a>
+            <a href="/anuncios/nuevo" class="btn btn-primary">
+                Anuncios
+            </a>
+            <a href="/anuncios/lista" class="btn btn-primary">
+                Lista de anuncio
+            </a>
+
+
+
+        </div>
+    </div>
+
+
+
+    <h3 class="mb-4">Enviar Anuncio por WhatsApp</h3>
+
+
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            <form th:action="@{/envio/enviar}" method="post">
+
+                <div class="mb-3">
+
+                    <label class="form-label">Selecciona Cliente</label>
+
+                    <select name="clienteIndex" class="form-select">
+
+                        <option th:each="c, iterStat : ${clientes}"
+                                th:value="${iterStat.index}"
+                                th:text="${c.nombre + ' - ' + c.telefono}">
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="mb-4">
+
+                    <label class="form-label">Selecciona Anuncio</label>
+
+                    <select name="anuncioIndex" class="form-select">
+
+                        <option th:each="a, iterStat : ${anuncios}"
+                                th:value="${iterStat.index}"
+                                th:text="${a.texto}">
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <button type="submit" class="btn btn-primary">
+                    Enviar
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
 
 </body>
 </html>
