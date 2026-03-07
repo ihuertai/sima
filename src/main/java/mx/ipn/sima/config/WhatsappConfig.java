@@ -15,11 +15,22 @@ public class WhatsappConfig {
     @Value("${whatsapp.api.phone-number-id}")
     private String phoneNumberId;
 
+    @Value("${whatsapp.api.waba-id:}")
+    private String wabaId;
+
     public String getFullUrl() { 
         return apiUrl + phoneNumberId + "/messages"; 
     }
     
     public String getAccessToken() { 
         return accessToken; 
+    }
+
+    public String getWabaId() {
+        return wabaId;
+    }
+
+    public String getPhoneNumberId() {
+        return phoneNumberId;
     }
 }

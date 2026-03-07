@@ -1,5 +1,6 @@
 package mx.ipn.sima.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,6 +74,7 @@ public class WhatsappRequest {
         public List<Parameter> getParameters() { return parameters; }
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Parameter {
         private String type;
         private String text;

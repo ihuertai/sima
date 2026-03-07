@@ -16,11 +16,11 @@ class WhatsappServiceTest {
     @Test
     void probarEnvioImagenYTexto() {
         // 1. Datos reales para la prueba
-        String miTelefono = "52155XXXXXXXX"; // <--- PON TU CELULAR AQUÍ
+        String miTelefono = "525514799033"; // <--- PON TU CELULAR AQUÍ
         String urlImagen = "https://raw.githubusercontent.com/pokeapi/sprites/master/sprites/pokemon/25.png"; 
         
         // 2. IMPORTANTE: Deben ser exactamente la cantidad de variables {{n}} de tu plantilla
-        List<String> variablesCuerpo = Arrays.asList("Juan", "Descuento 2x1", "Válido hoy");
+        List<String> variablesCuerpo = Arrays.asList("Descuento 2x1");
 
         // 3. Ejecutar envío
         boolean resultado = whatsappService.sendTemplateWithImage(
