@@ -43,7 +43,9 @@ public class EnvioController {
                 List.of(anuncio.getTexto())
         );
 
-        model.addAttribute("resultado", enviado ? "Mensaje enviado correctamente" : "Error al enviar mensaje");
+        String resultado = enviado ? "Mensaje 1 enviado correctamente\n " : "Error al enviar mensaje 1\n ";
+        
+        model.addAttribute("resultado", resultado);
         return "envio-resultado";
     }
 }

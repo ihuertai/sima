@@ -45,7 +45,7 @@ public class WhatsappService {
      * @return true si el envío fue exitoso
      */
     public boolean sendTemplateWithImage(String phoneNumber, String imageUrl, List<String> bodyValues) {
-        final String templateName = "sima_foto";
+        final String templateName = "sima_imagen";
         final String languageCode = "es_MX";
         try {
             // Construimos la petición usando la lista de valores
