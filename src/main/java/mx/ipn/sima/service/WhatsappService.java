@@ -12,6 +12,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +29,9 @@ public class WhatsappService {
     private final String wabaId;
 
     public WhatsappService(
-        WhatsappConfig whatsappConfig,
-        @Value("${whatsapp.api.phone-number-id}") String phoneNumberId,
-        @Value("${whatsapp.api.waba-id:}") String wabaId
+            WhatsappConfig whatsappConfig,
+            @Value("${whatsapp.api.phone-number-id}") String phoneNumberId,
+            @Value("${whatsapp.api.waba-id:}") String wabaId
     ) {
         this.whatsappConfig = whatsappConfig;
         this.restTemplate = new RestTemplate();
@@ -38,62 +41,141 @@ public class WhatsappService {
     }
 
     /**
+     * Envía un mensaje de texto libre (útil para reenvíos a coordinadores).
+     * Nota: Solo funciona si hay una ventana de 24h abierta o el número es de prueba configurado.
+     * @param to Número de destino (ej. 5215512345678)
+     * @param text Cuerpo del mensaje
+     */
+    public void sendMessage(String to, String text) {
+        try {
+            log.info("Enviando mensaje de texto libre a: {}", to);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(whatsappConfig.getAccessToken());
+
+            // Construcción del payload manual para mensaje de texto
+            Map<String, Object> body = new HashMap<>();
+            body.put("messaging_product", "whatsapp");
+            body.put("recipient_type", "individual");
+            body.put("to", to);
+            body.put("type", "text");
+
+            Map<String, String> textContent = new HashMap<>();
+            textContent.put("body", text);
+            body.put("text", textContent);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    whatsappConfig.getFullUrl(),
+                    entity,
+                    String.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Mensaje de texto enviado exitosamente a: {}", to);
+            }
+        } catch (HttpClientErrorException e) {
+            log.error("Error de Meta al enviar texto libre: {}", e.getResponseBodyAsString());
+            // Si falla por ventana de 24h, podrías intentar enviar una plantilla de notificación aquí
+        } catch (Exception e) {
+            log.error("Error crítico enviando mensaje de texto: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Envia un documento (por URL publica) al cliente.
+     * Meta descarga el archivo desde la URL, por eso debe ser accesible desde internet.
+     */
+    public void sendDocumentMessage(String to, String documentUrl, String fileName, String caption) {
+        if (documentUrl == null || documentUrl.isBlank()) {
+            log.warn("No se envio documento porque la URL del PDF esta vacia.");
+            return;
+        }
+
+        try {
+            log.info("Enviando documento a: {}", to);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(whatsappConfig.getAccessToken());
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("messaging_product", "whatsapp");
+            body.put("recipient_type", "individual");
+            body.put("to", to);
+            body.put("type", "document");
+
+            Map<String, Object> document = new HashMap<>();
+            document.put("link", documentUrl);
+            if (fileName != null && !fileName.isBlank()) {
+                document.put("filename", fileName);
+            }
+            if (caption != null && !caption.isBlank()) {
+                document.put("caption", caption);
+            }
+            body.put("document", document);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            ResponseEntity<String> response = restTemplate.postForEntity(
+                    whatsappConfig.getFullUrl(),
+                    entity,
+                    String.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("Documento enviado exitosamente a: {}", to);
+            }
+        } catch (HttpClientErrorException e) {
+            log.error("Error de Meta al enviar documento: {}", e.getResponseBodyAsString());
+        } catch (Exception e) {
+            log.error("Error critico enviando documento: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Envía una plantilla con imagen y múltiples variables de texto.
-     * * @param phoneNumber Número del cliente (ej. 5215512345678)
-     * @param imageUrl    URL pública de la imagen para el Header
-     * @param bodyValues  Lista de strings en orden para {{1}}, {{2}}, {{3}}...
+     * @param phoneNumber Número del cliente
+     * @param imageUrl    URL pública de la imagen
+     * @param bodyValues  Lista de strings para {{1}}, {{2}}...
      * @return true si el envío fue exitoso
      */
     public boolean sendTemplateWithImage(String phoneNumber, String imageUrl, List<String> bodyValues) {
-        final String templateName = "sima_imagen";
+        final String templateName = "sima_respuesta";
         final String languageCode = "es_MX";
         try {
-            // Construimos la petición usando la lista de valores
             WhatsappRequest request = new WhatsappRequest(
-                phoneNumber, 
-                templateName,
-                languageCode,
-                imageUrl, 
-                bodyValues
+                    phoneNumber,
+                    templateName,
+                    languageCode,
+                    imageUrl,
+                    bodyValues
             );
 
-            log.info("Payload WhatsApp (resumen): to={}, template={}, language={}, bodyParams={}",
-                phoneNumber,
-                templateName,
-                languageCode,
-                bodyValues != null ? bodyValues.size() : 0
-            );
-            log.info("URL WhatsApp usada: {}", whatsappConfig.getFullUrl());
+            log.info("Payload WhatsApp (Plantilla): to={}, template={}", phoneNumber, templateName);
 
-            // Configuración de encabezados con el Token Permanente
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(whatsappConfig.getAccessToken());
 
             HttpEntity<WhatsappRequest> entity = new HttpEntity<>(request, headers);
 
-            // Llamada a la API de Meta
             ResponseEntity<String> response = restTemplate.exchange(
-                whatsappConfig.getFullUrl(),
-                HttpMethod.POST,
-                entity,
-                String.class
+                    whatsappConfig.getFullUrl(),
+                    HttpMethod.POST,
+                    entity,
+                    String.class
             );
 
             if (response.getStatusCode().is2xxSuccessful()) {
-                log.info("Mensaje enviado exitosamente a: {}", phoneNumber);
+                log.info("Plantilla enviada exitosamente a: {}", phoneNumber);
                 return true;
             } else {
                 log.warn("Respuesta no exitosa de Meta: {}", response.getBody());
                 return false;
             }
 
-        /* } catch (Exception e) {
-            log.error("Error crítico enviando a WhatsApp: {}", e.getMessage());
-            return false;
-        }*/
-
-        //inicio
         } catch (HttpClientErrorException e) {
             log.error("Error de Meta: {}", e.getResponseBodyAsString());
             if (e.getResponseBodyAsString() != null && e.getResponseBodyAsString().contains("\"code\":132001")) {
@@ -104,10 +186,6 @@ public class WhatsappService {
             log.error("Error crítico: {}", e.getMessage());
             return false;
         }
-
-        //fin
-
-        
     }
 
     private void runTemplateDiagnostics(String templateName, String languageCode) {
@@ -119,71 +197,61 @@ public class WhatsappService {
             HttpEntity<Void> entity = new HttpEntity<>(headers);
 
             String phoneInfoUrl = UriComponentsBuilder
-                .fromUriString("https://graph.facebook.com/v22.0/" + phoneNumberId)
-                .queryParam("fields", "id,display_phone_number,verified_name,account_mode,status,platform_type")
-                .toUriString();
+                    .fromUriString("https://graph.facebook.com/v22.0/" + phoneNumberId)
+                    .queryParam("fields", "id,display_phone_number,verified_name,account_mode,status,platform_type")
+                    .toUriString();
 
             String phoneInfoJson = restTemplate.exchange(
-                phoneInfoUrl,
-                HttpMethod.GET,
-                entity,
-                String.class
+                    phoneInfoUrl,
+                    HttpMethod.GET,
+                    entity,
+                    String.class
             ).getBody();
 
             log.info("Diagnóstico phone-number-id {}: {}", phoneNumberId, phoneInfoJson);
 
             if (wabaId == null || wabaId.isBlank()) {
-                log.warn("No hay whatsapp.api.waba-id configurado. Configúralo para consultar plantillas por Graph y validar idioma/nombre exactos.");
+                log.warn("No hay whatsapp.api.waba-id configurado.");
                 return;
             }
 
             String templatesUrl = UriComponentsBuilder
-                .fromUriString("https://graph.facebook.com/v22.0/" + wabaId + "/message_templates")
-                .queryParam("name", templateName)
-                .queryParam("fields", "name,language,status,category")
-                .toUriString();
+                    .fromUriString("https://graph.facebook.com/v22.0/" + wabaId + "/message_templates")
+                    .queryParam("name", templateName)
+                    .queryParam("fields", "name,language,status,category")
+                    .toUriString();
 
             String templatesJson;
             try {
                 templatesJson = restTemplate.exchange(
-                    templatesUrl,
-                    HttpMethod.GET,
-                    entity,
-                    String.class
+                        templatesUrl,
+                        HttpMethod.GET,
+                        entity,
+                        String.class
                 ).getBody();
             } catch (HttpClientErrorException ex) {
-                String apiError = ex.getResponseBodyAsString();
-                log.error("Error consultando plantillas del WABA {}: {}", wabaId, apiError);
-                if (apiError != null && apiError.contains("nonexisting field (message_templates)")) {
-                    log.error("El ID configurado en whatsapp.api.waba-id no parece ser un WABA ID válido; suele ocurrir cuando se coloca el Business Portfolio ID.");
-                }
+                log.error("Error consultando plantillas del WABA {}: {}", wabaId, ex.getResponseBodyAsString());
                 return;
             }
 
             Map<String, Object> templatesNode = templatesJson != null ? jsonParser.parseMap(templatesJson) : Map.of();
-
             log.info("Diagnóstico plantillas en WABA {}: {}", wabaId, templatesNode);
 
             boolean exactMatch = false;
             Object dataObj = templatesNode.get("data");
             if (dataObj instanceof List<?> dataList) {
                 for (Object itemObj : dataList) {
-                    if (!(itemObj instanceof Map<?, ?> item)) {
-                        continue;
-                    }
-                    Object nameObj = item.get("name");
-                    Object langObj = item.get("language");
-                    String name = nameObj != null ? String.valueOf(nameObj) : "";
-                    String lang = langObj != null ? String.valueOf(langObj) : "";
-                    if (templateName.equals(name) && languageCode.equals(lang)) {
-                        exactMatch = true;
-                        break;
+                    if (itemObj instanceof Map<?, ?> item) {
+                        if (templateName.equals(item.get("name")) && languageCode.equals(item.get("language"))) {
+                            exactMatch = true;
+                            break;
+                        }
                     }
                 }
             }
 
             if (!exactMatch) {
-                log.error("No existe coincidencia exacta para template='{}' y language='{}' en el WABA del phone-number-id configurado.", templateName, languageCode);
+                log.error("No existe coincidencia exacta para template='{}' y language='{}'", templateName, languageCode);
             } else {
                 log.info("Sí existe coincidencia exacta de template e idioma en el WABA.");
             }

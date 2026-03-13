@@ -3,6 +3,7 @@ package mx.ipn.sima.controller;
 import mx.ipn.sima.model.Anuncio;
 import mx.ipn.sima.model.Cliente;
 import mx.ipn.sima.service.AlmacenService;
+import mx.ipn.sima.service.WhatsappConversationContextService;
 import mx.ipn.sima.service.WhatsappService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,10 +17,16 @@ public class EnvioController {
 
     private final AlmacenService almacenService;
     private final WhatsappService whatsappService;
+    private final WhatsappConversationContextService conversationContextService;
 
-    public EnvioController(AlmacenService almacenService, WhatsappService whatsappService) {
+    public EnvioController(
+            AlmacenService almacenService,
+            WhatsappService whatsappService,
+            WhatsappConversationContextService conversationContextService
+    ) {
         this.almacenService = almacenService;
         this.whatsappService = whatsappService;
+        this.conversationContextService = conversationContextService;
     }
 
     @GetMapping
@@ -42,6 +49,11 @@ public class EnvioController {
                 anuncio.getImagen(),
                 List.of(anuncio.getTexto())
         );
+
+        if (enviado) {
+            // Se guarda contexto para resolver el producto cuando el boton no trae payload.
+            conversationContextService.registerLastSentProduct(cliente.getTelefono(), anuncio.getTexto());
+        }
 
         String resultado = enviado ? "Mensaje 1 enviado correctamente\n " : "Error al enviar mensaje 1\n ";
         
