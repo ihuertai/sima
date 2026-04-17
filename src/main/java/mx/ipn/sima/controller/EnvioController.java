@@ -19,11 +19,9 @@ public class EnvioController {
     private final WhatsappService whatsappService;
     private final WhatsappConversationContextService conversationContextService;
 
-    public EnvioController(
-            AlmacenService almacenService,
-            WhatsappService whatsappService,
-            WhatsappConversationContextService conversationContextService
-    ) {
+    public EnvioController(AlmacenService almacenService,
+                           WhatsappService whatsappService,
+                           WhatsappConversationContextService conversationContextService) {
         this.almacenService = almacenService;
         this.whatsappService = whatsappService;
         this.conversationContextService = conversationContextService;
@@ -37,12 +35,9 @@ public class EnvioController {
     }
 
     @PostMapping("/enviar")
-    public String enviarMensaje(@RequestParam int clienteIndex,
-                                @RequestParam int anuncioIndex,
-                                Model model) {
-
-        Cliente cliente = almacenService.getClientes().get(clienteIndex);
-        Anuncio anuncio = almacenService.getAnuncios().get(anuncioIndex);
+    public String enviarMensaje(@RequestParam Long clienteId, @RequestParam Long anuncioId, Model model) {
+        Cliente cliente = almacenService.getCliente(clienteId);
+        Anuncio anuncio = almacenService.getAnuncio(anuncioId);
 
         boolean enviado = whatsappService.sendTemplateWithImage(
                 cliente.getTelefono(),
@@ -51,13 +46,10 @@ public class EnvioController {
         );
 
         if (enviado) {
-            // Se guarda contexto para resolver el producto cuando el boton no trae payload.
-            conversationContextService.registerLastSentProduct(cliente.getTelefono(), anuncio.getTexto());
+            conversationContextService.registerLastSentProduct(cliente.getTelefono(), anuncio.getTitulo());
         }
 
-        String resultado = enviado ? "Mensaje 1 enviado correctamente\n " : "Error al enviar mensaje 1\n ";
-        
-        model.addAttribute("resultado", resultado);
+        model.addAttribute("resultado", enviado ? "Mensaje enviado correctamente" : "Error al enviar mensaje");
         return "envio-resultado";
     }
 }

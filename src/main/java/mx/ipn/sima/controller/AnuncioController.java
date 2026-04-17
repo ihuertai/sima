@@ -1,6 +1,8 @@
 package mx.ipn.sima.controller;
 
 import mx.ipn.sima.model.Anuncio;
+import mx.ipn.sima.model.Empleado;
+import mx.ipn.sima.model.InformacionExtraTipo;
 import mx.ipn.sima.service.AlmacenService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -18,7 +20,11 @@ public class AnuncioController {
 
     @GetMapping("/nuevo")
     public String mostrarFormulario(Model model) {
-        model.addAttribute("anuncio", new Anuncio());
+        Anuncio anuncio = new Anuncio();
+        anuncio.setCreadoPor(new Empleado());
+        model.addAttribute("anuncio", anuncio);
+        model.addAttribute("gerentes", almacenService.getGerentes());
+        model.addAttribute("tiposExtra", InformacionExtraTipo.values());
         return "anuncio-form";
     }
 

@@ -1,36 +1,36 @@
-package mx.ipn.sima.config;
+    package mx.ipn.sima.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
+    import org.springframework.beans.factory.annotation.Value;
+    import org.springframework.context.annotation.Configuration;
 
-@Configuration
-public class WhatsappConfig {
+    @Configuration
+    public class WhatsappConfig {
 
-    @Value("${whatsapp.api.url:https://graph.facebook.com/v21.0/}")
-    private String apiUrl;
+        @Value("${whatsapp.api.url:https://graph.facebook.com/v21.0/}")
+        private String apiUrl;
 
-    @Value("${whatsapp.api.token}")
-    private String accessToken;
+        @Value("${whatsapp.api.token}")
+        private String accessToken;
 
-    @Value("${whatsapp.api.phone-number-id}")
-    private String phoneNumberId;
+        @Value("${whatsapp.api.phone-number-id}")
+        private String phoneNumberId;
 
-    @Value("${whatsapp.api.waba-id:}")
-    private String wabaId;
+        @Value("${whatsapp.api.waba-id:}")
+        private String wabaId;
 
-    public String getFullUrl() { 
-        return apiUrl + phoneNumberId + "/messages"; 
+        public String getFullUrl() {
+            return apiUrl + phoneNumberId + "/messages";
+        }
+
+        public String getAccessToken() {
+            return accessToken;
+        }
+
+        public String getWabaId() {
+            return wabaId;
+        }
+
+        public String getPhoneNumberId() {
+            return phoneNumberId;
+        }
     }
-    
-    public String getAccessToken() { 
-        return accessToken; 
-    }
-
-    public String getWabaId() {
-        return wabaId;
-    }
-
-    public String getPhoneNumberId() {
-        return phoneNumberId;
-    }
-}
