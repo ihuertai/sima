@@ -11,11 +11,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="titulo-sima mb-0">SIMA</h1>
         <div class="d-flex gap-2">
-            <a href="/dashboard" class="btn btn-primary">Menu</a>
+            <a href="/dashboard" class="btn btn-primary">Men&uacute;</a>
             <a href="/clientes/lista" class="btn btn-primary">Lista de clientes</a>
-            <a href="/anuncios/nuevo" class="btn btn-primary">Anuncio</a>
-            <a href="/anuncios/lista" class="btn btn-primary">Lista de anuncio</a>
-            <a href="/envio" class="btn btn-primary">Enviar</a>
+            <a th:if="${canManageAds}" href="/anuncios/nuevo" class="btn btn-primary">Anuncios</a>
+            <a th:if="${canManageCampaigns}" href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
         </div>
     </div>
 
@@ -27,10 +26,10 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Nombre</label>
-                        <input type="text" class="form-control" th:field="*{nombre}">
+                        <input type="text" class="form-control" th:field="*{nombre}" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Razon social</label>
+                        <label class="form-label">Raz&oacute;n social</label>
                         <input type="text" class="form-control" th:field="*{razonSocial}">
                     </div>
                     <div class="col-md-6">
@@ -38,34 +37,36 @@
                         <input type="email" class="form-control" th:field="*{correo}">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Telefono</label>
-                        <input type="text" class="form-control" th:field="*{telefono}">
+                        <label class="form-label">Tel&eacute;fono</label>
+                        <input type="text" class="form-control" th:field="*{telefono}" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Sucursal</label>
                         <select class="form-select" th:field="*{sucursal.id}">
+                            <option value="">Selecciona</option>
                             <option th:each="sucursal : ${sucursales}" th:value="${sucursal.id}" th:text="${sucursal.nombre}"></option>
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jefe de sucursal</label>
+                        <label class="form-label">Responsable de sucursal</label>
                         <select class="form-select" th:field="*{jefeSucursal.id}">
+                            <option value="">Selecciona</option>
                             <option th:each="jefe : ${jefesSucursal}" th:value="${jefe.id}" th:text="${jefe.nombre}"></option>
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Facturacion mensual</label>
+                        <label class="form-label">Facturaci&oacute;n mensual</label>
                         <input type="number" step="0.01" class="form-control" th:field="*{facturacionMensual}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Tamano de empresa</label>
+                        <label class="form-label">Tama&ntilde;o de empresa</label>
                         <select class="form-select" th:field="*{tamanoEmpresa}">
                             <option value="">Selecciona</option>
                             <option th:each="tamano : ${tamanos}" th:value="${tamano}" th:text="${tamano}"></option>
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Categoria de producto</label>
+                        <label class="form-label">Categor&iacute;a de producto</label>
                         <input type="text" class="form-control" th:field="*{categoriaProducto}">
                     </div>
                     <div class="col-12">

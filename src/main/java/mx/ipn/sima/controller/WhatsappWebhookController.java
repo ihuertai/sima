@@ -3,7 +3,6 @@ package mx.ipn.sima.controller;
 import mx.ipn.sima.dto.WhatsappResponse;
 import mx.ipn.sima.service.WhatsappInteractionService;
 import mx.ipn.sima.service.WhatsappService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
@@ -12,13 +11,15 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/webhook")
 public class WhatsappWebhookController {
 
-    @Autowired
-    private WhatsappService whatsappService;
+    private final WhatsappService whatsappService;
+    private final WhatsappInteractionService interactionService;
 
-    @Autowired
-    private WhatsappInteractionService interactionService;
+    public WhatsappWebhookController(WhatsappService whatsappService,
+                                     WhatsappInteractionService interactionService) {
+        this.whatsappService = whatsappService;
+        this.interactionService = interactionService;
+    }
 
-    // Handshake (Se mantiene igual)
     @GetMapping
     public ResponseEntity<String> verifyWebhook(
             @RequestParam("hub.mode") String mode,
@@ -32,36 +33,32 @@ public class WhatsappWebhookController {
 
     @PostMapping
     public ResponseEntity<Void> handleIncomingMessage(@RequestBody WhatsappResponse payload) {
-        // Respuesta inmediata a Meta
         processAsync(payload);
         return ResponseEntity.ok().build();
     }
 
-    
-
     @Async
     protected void processAsync(WhatsappResponse payload) {
         try {
-            // Navegación segura con validaciones mínimas
-            if (payload.entry != null && !payload.entry.isEmpty()) {
+            if (payload.entry != null && !payload.entry.isEmpty()
+                    && payload.entry.get(0).changes != null && !payload.entry.get(0).changes.isEmpty()) {
                 var value = payload.entry.get(0).changes.get(0).value;
-                
+
                 if (value.messages != null && !value.messages.isEmpty()) {
                     var message = value.messages.get(0);
                     String cliente = message.from;
-                    String texto = (message.text != null) ? message.text.body : "(Mensaje sin texto)";
+                    String texto = (message.text != null && message.text.body != null && !message.text.body.isBlank())
+                            ? message.text.body
+                            : "(Mensaje sin texto)";
 
-                    System.out.println("Reenviando mensaje de: " + cliente);
-
-                    // Si es respuesta de boton, se procesa por flujo de negocio y no se reenvia como texto normal.
                     if (interactionService.handleInteractiveReply(message)) {
                         return;
                     }
 
-                    // Reenvío al Coordinador
+                    interactionService.registerFreeTextReply(cliente, texto);
+
                     String coordinador = interactionService.getDefaultCoordinatorPhone();
                     String aviso = "*SIMA - Nuevo Mensaje*\nDe: " + cliente + "\nDice: " + texto;
-                    
                     whatsappService.sendMessage(coordinador, aviso);
                 }
             }

@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     List<Cliente> findAllByActiveTrueOrderByNombreAsc();
+    List<Cliente> findAllByActiveTrue();
 }

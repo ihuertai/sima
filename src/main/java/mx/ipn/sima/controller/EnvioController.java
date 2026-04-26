@@ -1,55 +1,83 @@
 package mx.ipn.sima.controller;
 
-import mx.ipn.sima.model.Anuncio;
-import mx.ipn.sima.model.Cliente;
+import jakarta.servlet.http.HttpSession;
+import mx.ipn.sima.model.*;
 import mx.ipn.sima.service.AlmacenService;
-import mx.ipn.sima.service.WhatsappConversationContextService;
-import mx.ipn.sima.service.WhatsappService;
+import mx.ipn.sima.service.CampanaService;
+import mx.ipn.sima.service.RoleAccessService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Controller
 @RequestMapping("/envio")
 public class EnvioController {
 
     private final AlmacenService almacenService;
-    private final WhatsappService whatsappService;
-    private final WhatsappConversationContextService conversationContextService;
+    private final CampanaService campanaService;
+    private final RoleAccessService roleAccessService;
 
     public EnvioController(AlmacenService almacenService,
-                           WhatsappService whatsappService,
-                           WhatsappConversationContextService conversationContextService) {
+                           CampanaService campanaService,
+                           RoleAccessService roleAccessService) {
         this.almacenService = almacenService;
-        this.whatsappService = whatsappService;
-        this.conversationContextService = conversationContextService;
+        this.campanaService = campanaService;
+        this.roleAccessService = roleAccessService;
     }
 
     @GetMapping
-    public String mostrarPantalla(Model model) {
-        model.addAttribute("clientes", almacenService.getClientes());
+    public String mostrarPantalla(Model model, HttpSession session) {
+        roleAccessService.requireCampaignManagement(session);
+        CampanaEnvio campana = new CampanaEnvio();
+        campana.setAnuncio(new Anuncio());
+        campana.setCreadoPor(new Empleado());
+        campana.setSucursal(new Sucursal());
+        model.addAttribute("campana", campana);
         model.addAttribute("anuncios", almacenService.getAnuncios());
+        model.addAttribute("gerentes", almacenService.getGerentes());
+        model.addAttribute("sucursales", almacenService.getSucursales());
+        model.addAttribute("tamanos", TamanoEmpresa.values());
         return "envio-form";
     }
 
-    @PostMapping("/enviar")
-    public String enviarMensaje(@RequestParam Long clienteId, @RequestParam Long anuncioId, Model model) {
-        Cliente cliente = almacenService.getCliente(clienteId);
-        Anuncio anuncio = almacenService.getAnuncio(anuncioId);
+    @PostMapping("/guardar")
+    public String guardarCampana(@ModelAttribute CampanaEnvio campana, HttpSession session) {
+        roleAccessService.requireCampaignManagement(session);
+        CampanaEnvio saved = campanaService.crearCampana(campana);
+        return "redirect:/envio/resultado/" + saved.getId();
+    }
 
-        boolean enviado = whatsappService.sendTemplateWithImage(
-                cliente.getTelefono(),
-                anuncio.getImagen(),
-                List.of(anuncio.getTexto())
-        );
+    @GetMapping("/lista")
+    public String listarCampanas(Model model, HttpSession session) {
+        roleAccessService.requireCampaignManagement(session);
+        model.addAttribute("campanas", campanaService.getCampanas());
+        return "campana-lista";
+    }
 
-        if (enviado) {
-            conversationContextService.registerLastSentProduct(cliente.getTelefono(), anuncio.getTitulo());
-        }
+    @PostMapping("/ejecutar/{id}")
+    public String ejecutarCampana(@PathVariable Long id, HttpSession session) {
+        roleAccessService.requireCampaignManagement(session);
+        campanaService.executeCampaign(id);
+        return "redirect:/envio/resultado/" + id;
+    }
 
-        model.addAttribute("resultado", enviado ? "Mensaje enviado correctamente" : "Error al enviar mensaje");
+    @GetMapping("/resultado/{id}")
+    public String resultado(@PathVariable Long id, Model model, HttpSession session) {
+        roleAccessService.requireCampaignManagement(session);
+        CampanaEnvio campana = campanaService.getCampana(id);
+        model.addAttribute("campana", campana);
+        model.addAttribute("destinatarios", campanaService.getDestinatarios(id));
+        model.addAttribute("resultado", buildResultMessage(campana));
         return "envio-resultado";
+    }
+
+    private String buildResultMessage(CampanaEnvio campana) {
+        return switch (campana.getEstado()) {
+            case PROGRAMADA -> "Campana programada correctamente.";
+            case EJECUTADA -> "Campana ejecutada correctamente.";
+            case EJECUTADA_CON_ERRORES -> "Campana ejecutada con incidencias. Revisa el detalle por destinatario.";
+            case BORRADOR -> "Campana guardada en borrador.";
+            case EN_PROCESO -> "Campana en proceso de envio.";
+        };
     }
 }

@@ -115,8 +115,51 @@ public class AlmacenService {
     }
 
     @Transactional(readOnly = true)
+    public Cliente findClienteByTelefono(String telefono) {
+        String normalized = normalizePhone(telefono);
+        return clienteRepository.findAllByActiveTrue().stream()
+                .filter(cliente -> normalizePhone(cliente.getTelefono()).equals(normalized))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
     public Anuncio getAnuncio(Long id) {
         return anuncioRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Anuncio no encontrado"));
+    }
+
+    @Transactional(readOnly = true)
+    public Sucursal getSucursal(Long id) {
+        return sucursalRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada"));
+    }
+
+    @Transactional(readOnly = true)
+    public Empleado getEmpleado(Long id) {
+        return empleadoRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado"));
+    }
+
+    @Transactional(readOnly = true)
+    public Empleado findEmpleadoResponsableDeCliente(Cliente cliente) {
+        if (cliente == null) {
+            return null;
+        }
+        if (cliente.getJefeSucursal() != null) {
+            return cliente.getJefeSucursal();
+        }
+        return getJefesSucursal().stream()
+                .filter(jefe -> jefe.getSucursal() != null && cliente.getSucursal() != null
+                        && jefe.getSucursal().getId().equals(cliente.getSucursal().getId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public Empleado findEmpleadoByLoginContext(Long userId, String email) {
+        return empleadoRepository.findAllByActiveTrueAndRolOperativoOrderByNombreAsc(RolOperativo.JEFE_SUCURSAL).stream()
+                .filter(empleado -> (userId != null && empleado.getLoginUserId() != null && empleado.getLoginUserId().equals(userId))
+                        || (email != null && !email.isBlank() && email.equalsIgnoreCase(empleado.getCorreo())))
+                .findFirst()
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)
@@ -148,5 +191,9 @@ public class AlmacenService {
         }
         return empleadoRepository.findById(empleado.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Empleado no encontrado"));
+    }
+
+    private String normalizePhone(String phone) {
+        return phone == null ? "" : phone.replaceAll("\\D", "");
     }
 }

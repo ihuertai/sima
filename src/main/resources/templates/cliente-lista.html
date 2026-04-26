@@ -11,16 +11,15 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="titulo-sima mb-0">SIMA</h1>
         <div class="d-flex gap-2">
-            <a href="/dashboard" class="btn btn-primary">Menu</a>
-            <a href="/anuncios/nuevo" class="btn btn-primary">Anuncio</a>
-            <a href="/anuncios/lista" class="btn btn-primary">Lista de anuncio</a>
-            <a href="/envio" class="btn btn-primary">Enviar</a>
+            <a href="/dashboard" class="btn btn-primary">Men&uacute;</a>
+            <a th:if="${canManageAds}" href="/anuncios/lista" class="btn btn-primary">Lista de anuncios</a>
+            <a th:if="${canManageCampaigns}" href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
         </div>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">Lista de Clientes</h3>
-        <a href="/clientes/nuevo" class="btn btn-primary">Agregar Cliente</a>
+        <a th:if="${canManageClients}" href="/clientes/nuevo" class="btn btn-primary">Agregar Cliente</a>
     </div>
 
     <div class="card shadow-sm">
@@ -30,10 +29,10 @@
                 <tr>
                     <th>Nombre</th>
                     <th>Sucursal</th>
-                    <th>Telefono</th>
-                    <th>Facturacion</th>
-                    <th>Tamano</th>
-                    <th>Categoria</th>
+                    <th>Tel&eacute;fono</th>
+                    <th>Facturaci&oacute;n</th>
+                    <th>Tama&ntilde;o</th>
+                    <th>Categor&iacute;a</th>
                 </tr>
                 </thead>
                 <tbody>

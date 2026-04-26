@@ -1,11 +1,17 @@
 package mx.ipn.sima.service;
 
+import mx.ipn.sima.dto.AuthenticatedUser;
 import mx.ipn.sima.dto.WhatsappResponse;
+import mx.ipn.sima.model.*;
+import mx.ipn.sima.repository.InteraccionClienteRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.Normalizer;
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -17,6 +23,8 @@ public class WhatsappInteractionService {
 
     private final WhatsappService whatsappService;
     private final WhatsappConversationContextService contextService;
+    private final InteraccionClienteRepository interaccionClienteRepository;
+    private final AlmacenService almacenService;
     private final String defaultCoordinatorPhone;
     private final String defaultAdvisorName;
     private final String defaultAdvisorPhone;
@@ -29,6 +37,8 @@ public class WhatsappInteractionService {
     public WhatsappInteractionService(
             WhatsappService whatsappService,
             WhatsappConversationContextService contextService,
+            InteraccionClienteRepository interaccionClienteRepository,
+            AlmacenService almacenService,
             @Value("${whatsapp.flow.default.coordinator:526441177362}") String defaultCoordinatorPhone,
             @Value("${whatsapp.flow.default.asesor:Asesor SIMA}") String defaultAdvisorName,
             @Value("${whatsapp.flow.default.asesor-phone:}") String defaultAdvisorPhone,
@@ -40,6 +50,8 @@ public class WhatsappInteractionService {
     ) {
         this.whatsappService = whatsappService;
         this.contextService = contextService;
+        this.interaccionClienteRepository = interaccionClienteRepository;
+        this.almacenService = almacenService;
         this.defaultCoordinatorPhone = defaultCoordinatorPhone;
         this.defaultAdvisorName = defaultAdvisorName;
         this.defaultAdvisorPhone = defaultAdvisorPhone;
@@ -50,6 +62,7 @@ public class WhatsappInteractionService {
         this.assignmentsByProduct = parseAssignments(productRoutingConfig);
     }
 
+    @Transactional
     public boolean handleInteractiveReply(WhatsappResponse.Message message) {
         String action = resolveAction(message);
         if (action == null) {
@@ -57,40 +70,129 @@ public class WhatsappInteractionService {
         }
 
         String clientPhone = message.from;
-        String productName = resolveProductName(message);
+        WhatsappConversationContextService.ConversationContextData contextData = contextService.getLastContext(clientPhone);
+        Cliente cliente = contextData != null && contextData.cliente() != null
+                ? contextData.cliente()
+                : almacenService.findClienteByTelefono(clientPhone);
+        CampanaEnvio campana = contextData != null ? contextData.campana() : null;
+        Anuncio anuncio = contextData != null ? contextData.anuncio() : null;
+        String productName = resolveProductName(message, contextData);
+        Empleado jefeResponsable = resolveResponsibleLead(contextData, cliente, productName);
 
         if (ACTION_MAS_INFO.equals(action)) {
-            String detailText = buildMasInfoText(productName);
+            String detailText = buildMasInfoText(productName, anuncio);
             whatsappService.sendMessage(clientPhone, detailText);
-            whatsappService.sendDocumentMessage(clientPhone, masInfoPdfUrl, masInfoPdfFilename, masInfoPdfCaption);
+
+            DocumentPayload payload = resolveDocumentPayload(anuncio);
+            if (payload != null) {
+                whatsappService.sendDocumentMessage(clientPhone, payload.url(), payload.fileName(), payload.caption());
+            }
+
+            InteraccionCliente interaccion = buildInteraction(
+                    cliente, campana, anuncio, jefeResponsable,
+                    TipoInteraccionCliente.MAS_INFO, clientPhone,
+                    getButtonText(message), "Contenido adicional enviado automaticamente."
+            );
+            interaccion.setEstadoSeguimiento(EstadoSeguimiento.NOTIFICADO);
+            interaccionClienteRepository.save(interaccion);
             return true;
         }
 
         if (ACTION_HABLAR_ASESOR.equals(action)) {
-            String advisorName = resolveAdvisorName(productName);
-            String advisorPhone = resolveAdvisorPhone(productName);
+            String advisorName = jefeResponsable != null && jefeResponsable.getNombre() != null && !jefeResponsable.getNombre().isBlank()
+                    ? jefeResponsable.getNombre()
+                    : resolveAdvisorName(productName);
+            String advisorPhone = jefeResponsable != null && jefeResponsable.getTelefono() != null && !jefeResponsable.getTelefono().isBlank()
+                    ? jefeResponsable.getTelefono()
+                    : resolveAdvisorPhone(productName);
 
             String clientNotice = "Te contactara el asesor " + advisorName;
             whatsappService.sendMessage(clientPhone, clientNotice);
 
             String advisorNotice = "El cliente " + clientPhone
-                + " se intereso en la promocion y quiere que le llamen."
-                + "\nProducto: " + productName;
+                    + " se intereso en la promocion y quiere que lo contacten."
+                    + "\nProducto: " + productName
+                    + (cliente != null && cliente.getSucursal() != null ? "\nSucursal: " + cliente.getSucursal().getNombre() : "");
             whatsappService.sendMessage(advisorPhone, advisorNotice);
 
             String coordinatorNotice = "*SIMA - Seguimiento*\n"
                     + "Producto: " + productName + "\n"
                     + "Cliente: " + clientPhone + "\n"
-                + "Asesor notificado: " + advisorName;
+                    + "Responsable: " + advisorName;
             whatsappService.sendMessage(defaultCoordinatorPhone, coordinatorNotice);
+
+            InteraccionCliente interaccion = buildInteraction(
+                    cliente, campana, anuncio, jefeResponsable,
+                    TipoInteraccionCliente.QUIERE_CONTACTO, clientPhone,
+                    getButtonText(message), advisorNotice
+            );
+            interaccion.setEstadoSeguimiento(EstadoSeguimiento.NOTIFICADO);
+            interaccionClienteRepository.save(interaccion);
             return true;
         }
 
         return false;
     }
 
+    @Transactional
+    public void registerFreeTextReply(String clientPhone, String text) {
+        WhatsappConversationContextService.ConversationContextData contextData = contextService.getLastContext(clientPhone);
+        Cliente cliente = contextData != null && contextData.cliente() != null
+                ? contextData.cliente()
+                : almacenService.findClienteByTelefono(clientPhone);
+        CampanaEnvio campana = contextData != null ? contextData.campana() : null;
+        Anuncio anuncio = contextData != null ? contextData.anuncio() : null;
+        String productName = contextData != null && contextData.productoNombre() != null
+                ? contextData.productoNombre()
+                : "Producto sin especificar";
+        Empleado jefeResponsable = resolveResponsibleLead(contextData, cliente, productName);
+
+        InteraccionCliente interaccion = buildInteraction(
+                cliente, campana, anuncio, jefeResponsable,
+                TipoInteraccionCliente.MENSAJE_LIBRE, clientPhone,
+                text, "Mensaje libre reenviado al coordinador."
+        );
+        interaccionClienteRepository.save(interaccion);
+    }
+
     public String getDefaultCoordinatorPhone() {
         return defaultCoordinatorPhone;
+    }
+
+    public List<InteraccionCliente> getInteractionsForUser(AuthenticatedUser user) {
+        if (user == null) {
+            return List.of();
+        }
+        if (hasAnyToken(user.roles(), "GERENTE", "ADMIN")) {
+            return interaccionClienteRepository.findAllByActiveTrueOrderByFechaInteraccionDesc();
+        }
+        Empleado empleado = almacenService.findEmpleadoByLoginContext(user.userId(), user.email());
+        if (empleado == null) {
+            return List.of();
+        }
+        return interaccionClienteRepository.findAllByActiveTrueAndJefeResponsableOrderByFechaInteraccionDesc(empleado);
+    }
+
+    private InteraccionCliente buildInteraction(Cliente cliente,
+                                                CampanaEnvio campana,
+                                                Anuncio anuncio,
+                                                Empleado jefeResponsable,
+                                                TipoInteraccionCliente tipo,
+                                                String clientPhone,
+                                                String incomingMessage,
+                                                String internalNotification) {
+        InteraccionCliente interaccion = new InteraccionCliente();
+        interaccion.setCliente(cliente);
+        interaccion.setCampana(campana);
+        interaccion.setAnuncio(anuncio);
+        interaccion.setJefeResponsable(jefeResponsable);
+        interaccion.setTipo(tipo);
+        interaccion.setTelefonoCliente(clientPhone);
+        interaccion.setProductoNombre(anuncio != null ? anuncio.getTitulo() : null);
+        interaccion.setMensajeCliente(incomingMessage);
+        interaccion.setNotificacionInterna(internalNotification);
+        interaccion.setFechaInteraccion(LocalDateTime.now());
+        return interaccion;
     }
 
     private String resolveAction(WhatsappResponse.Message message) {
@@ -132,18 +234,55 @@ public class WhatsappInteractionService {
         return null;
     }
 
-    private String resolveProductName(WhatsappResponse.Message message) {
+    private String resolveProductName(WhatsappResponse.Message message, WhatsappConversationContextService.ConversationContextData contextData) {
         String selectedAction = getSelectedAction(message);
         if (selectedAction != null && selectedAction.contains(":")) {
             return extractProductName(selectedAction);
         }
+        if (contextData != null && contextData.productoNombre() != null && !contextData.productoNombre().isBlank()) {
+            return contextData.productoNombre();
+        }
+        return "Producto sin especificar";
+    }
 
-        String productFromContext = contextService.getLastProduct(message.from);
-        if (productFromContext != null && !productFromContext.isBlank()) {
-            return productFromContext;
+    private Empleado resolveResponsibleLead(WhatsappConversationContextService.ConversationContextData contextData,
+                                            Cliente cliente,
+                                            String productName) {
+        if (contextData != null && contextData.jefeResponsable() != null) {
+            return contextData.jefeResponsable();
+        }
+        Empleado clienteOwner = almacenService.findEmpleadoResponsableDeCliente(cliente);
+        if (clienteOwner != null) {
+            return clienteOwner;
         }
 
-        return "Producto sin especificar";
+        String configuredAdvisorPhone = resolveAdvisorPhone(productName);
+        return almacenService.getJefesSucursal().stream()
+                .filter(empleado -> empleado.getTelefono() != null && empleado.getTelefono().replaceAll("\\D", "").equals(configuredAdvisorPhone.replaceAll("\\D", "")))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private DocumentPayload resolveDocumentPayload(Anuncio anuncio) {
+        if (anuncio == null || anuncio.getInformacionExtraValor() == null || anuncio.getInformacionExtraValor().isBlank()) {
+            if (masInfoPdfUrl == null || masInfoPdfUrl.isBlank()) {
+                return null;
+            }
+            return new DocumentPayload(masInfoPdfUrl, masInfoPdfFilename, masInfoPdfCaption);
+        }
+
+        if (anuncio.getInformacionExtraTipo() == InformacionExtraTipo.PDF) {
+            return new DocumentPayload(
+                    anuncio.getInformacionExtraValor(),
+                    masInfoPdfFilename,
+                    "Informacion detallada de " + anuncio.getTitulo()
+            );
+        }
+
+        if (masInfoPdfUrl == null || masInfoPdfUrl.isBlank()) {
+            return null;
+        }
+        return new DocumentPayload(masInfoPdfUrl, masInfoPdfFilename, masInfoPdfCaption);
     }
 
     private String getSelectedAction(WhatsappResponse.Message message) {
@@ -181,6 +320,10 @@ public class WhatsappInteractionService {
             return message.button.text;
         }
 
+        if (message.text != null && message.text.body != null && !message.text.body.isBlank()) {
+            return message.text.body;
+        }
+
         return null;
     }
 
@@ -206,7 +349,11 @@ public class WhatsappInteractionService {
         return "Producto sin especificar";
     }
 
-    private String buildMasInfoText(String productName) {
+    private String buildMasInfoText(String productName, Anuncio anuncio) {
+        if (anuncio != null && anuncio.getInformacionExtraTipo() == InformacionExtraTipo.TEXTO
+                && anuncio.getInformacionExtraValor() != null && !anuncio.getInformacionExtraValor().isBlank()) {
+            return "Informacion adicional de " + productName + ":\n" + anuncio.getInformacionExtraValor();
+        }
         return "Informacion adicional de " + productName + ":\n" + defaultMasInfoText;
     }
 
@@ -238,7 +385,6 @@ public class WhatsappInteractionService {
             return result;
         }
 
-        // Formato: Producto A|Asesor Ana|5215511111111;Producto B|Asesor Luis|5215522222222
         String[] entries = config.split(";");
         for (String entry : entries) {
             String[] parts = entry.split("\\|");
@@ -256,6 +402,26 @@ public class WhatsappInteractionService {
         return result;
     }
 
+    private boolean hasAnyToken(List<String> roles, String... tokens) {
+        if (roles == null || roles.isEmpty()) {
+            return false;
+        }
+        return roles.stream()
+                .filter(role -> role != null && !role.isBlank())
+                .map(role -> role.toUpperCase(Locale.ROOT))
+                .anyMatch(role -> {
+                    for (String token : tokens) {
+                        if (role.contains(token)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+    }
+
     private record Assignment(String advisorName, String advisorPhone) {
+    }
+
+    private record DocumentPayload(String url, String fileName, String caption) {
     }
 }

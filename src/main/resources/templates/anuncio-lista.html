@@ -11,16 +11,15 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="titulo-sima mb-0">SIMA</h1>
         <div class="d-flex gap-2">
-            <a href="/dashboard" class="btn btn-primary">Menu</a>
-            <a href="/clientes/nuevo" class="btn btn-primary">Clientes</a>
+            <a href="/dashboard" class="btn btn-primary">Men&uacute;</a>
             <a href="/clientes/lista" class="btn btn-primary">Lista de clientes</a>
-            <a href="/envio" class="btn btn-primary">Enviar</a>
+            <a th:if="${canManageCampaigns}" href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
         </div>
     </div>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3 class="mb-0">Lista de Anuncios</h3>
-        <a href="/anuncios/nuevo" class="btn btn-primary">Crear Anuncio</a>
+        <a th:if="${canManageAds}" href="/anuncios/nuevo" class="btn btn-primary">Crear Anuncio</a>
     </div>
 
     <div class="card shadow-sm">
@@ -28,7 +27,7 @@
             <table class="table table-striped table-hover mb-0">
                 <thead class="table-light">
                 <tr>
-                    <th>Titulo</th>
+                    <th>T&iacute;tulo</th>
                     <th>Texto</th>
                     <th>Fecha</th>
                     <th>Responsable</th>

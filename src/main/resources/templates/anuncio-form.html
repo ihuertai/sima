@@ -11,11 +11,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="titulo-sima mb-0">SIMA</h1>
         <div class="d-flex gap-2">
-            <a href="/dashboard" class="btn btn-primary">Menu</a>
-            <a href="/clientes/nuevo" class="btn btn-primary">Clientes</a>
+            <a href="/dashboard" class="btn btn-primary">Men&uacute;</a>
             <a href="/clientes/lista" class="btn btn-primary">Lista de clientes</a>
-            <a href="/anuncios/lista" class="btn btn-primary">Lista de anuncio</a>
-            <a href="/envio" class="btn btn-primary">Enviar</a>
+            <a href="/anuncios/lista" class="btn btn-primary">Lista de anuncios</a>
+            <a href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
         </div>
     </div>
 
@@ -26,37 +25,38 @@
             <form th:action="@{/anuncios/guardar}" th:object="${anuncio}" method="post">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Titulo</label>
-                        <input type="text" class="form-control" th:field="*{titulo}">
+                        <label class="form-label">T&iacute;tulo</label>
+                        <input type="text" class="form-control" th:field="*{titulo}" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Gerente responsable</label>
-                        <select class="form-select" th:field="*{creadoPor.id}">
+                        <select class="form-select" th:field="*{creadoPor.id}" required>
+                            <option value="">Selecciona</option>
                             <option th:each="gerente : ${gerentes}" th:value="${gerente.id}" th:text="${gerente.nombre}"></option>
                         </select>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Texto del anuncio</label>
-                        <textarea class="form-control" rows="4" th:field="*{texto}"></textarea>
+                        <textarea class="form-control" rows="4" th:field="*{texto}" required></textarea>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Imagen (URL publica)</label>
-                        <input type="text" class="form-control" th:field="*{imagen}">
+                        <label class="form-label">Imagen (URL p&uacute;blica)</label>
+                        <input type="text" class="form-control" th:field="*{imagen}" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Fecha de publicacion</label>
+                        <label class="form-label">Fecha de publicaci&oacute;n</label>
                         <input type="date" class="form-control" th:field="*{fechaPublicacion}">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Tipo de informacion extra</label>
+                        <label class="form-label">Tipo de informaci&oacute;n extra</label>
                         <select class="form-select" th:field="*{informacionExtraTipo}">
                             <option value="">Selecciona</option>
                             <option th:each="tipo : ${tiposExtra}" th:value="${tipo}" th:text="${tipo}"></option>
                         </select>
                     </div>
                     <div class="col-md-8">
-                        <label class="form-label">Valor de informacion extra</label>
-                        <input type="text" class="form-control" th:field="*{informacionExtraValor}" placeholder="URL, texto complementario o archivo asociado">
+                        <label class="form-label">Valor de informaci&oacute;n extra</label>
+                        <input type="text" class="form-control" th:field="*{informacionExtraValor}" placeholder="URL, texto o recurso adicional">
                     </div>
                 </div>
                 <button type="submit" class="btn btn-primary mt-4">Guardar</button>

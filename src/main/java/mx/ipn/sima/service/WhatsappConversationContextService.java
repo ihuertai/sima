@@ -1,49 +1,66 @@
 package mx.ipn.sima.service;
 
+import mx.ipn.sima.model.CampanaEnvio;
+import mx.ipn.sima.model.Cliente;
+import mx.ipn.sima.model.WhatsappConversationContext;
+import mx.ipn.sima.repository.WhatsappConversationContextRepository;
 import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class WhatsappConversationContextService {
 
-    private static final long CONTEXT_EXPIRATION_HOURS = 24;
+    private final WhatsappConversationContextRepository repository;
 
-    private final Map<String, ContextEntry> lastProductByPhone = new ConcurrentHashMap<>();
-
-    public void registerLastSentProduct(String phone, String productName) {
-        if (phone == null || phone.isBlank() || productName == null || productName.isBlank()) {
-            return;
-        }
-        lastProductByPhone.put(normalizePhone(phone), new ContextEntry(productName.trim(), Instant.now()));
+    public WhatsappConversationContextService(WhatsappConversationContextRepository repository) {
+        this.repository = repository;
     }
 
-    public String getLastProduct(String phone) {
+    @Transactional
+    public void registerLastSentContext(Cliente cliente, CampanaEnvio campana) {
+        if (cliente == null || campana == null || cliente.getTelefono() == null || cliente.getTelefono().isBlank()) {
+            return;
+        }
+
+        String normalizedPhone = normalizePhone(cliente.getTelefono());
+        WhatsappConversationContext context = repository.findByPhoneNumber(normalizedPhone)
+                .orElseGet(WhatsappConversationContext::new);
+        context.setPhoneNumber(normalizedPhone);
+        context.setCliente(cliente);
+        context.setCampana(campana);
+        context.setAnuncio(campana.getAnuncio());
+        context.setJefeResponsable(cliente.getJefeSucursal());
+        context.setProductoNombre(campana.getAnuncio() != null ? campana.getAnuncio().getTitulo() : null);
+        repository.save(context);
+    }
+
+    @Transactional(readOnly = true)
+    public ConversationContextData getLastContext(String phone) {
         if (phone == null || phone.isBlank()) {
             return null;
         }
 
-        ContextEntry entry = lastProductByPhone.get(normalizePhone(phone));
-        if (entry == null) {
-            return null;
-        }
-
-        Instant expirationLimit = entry.registeredAt().plus(CONTEXT_EXPIRATION_HOURS, ChronoUnit.HOURS);
-        if (Instant.now().isAfter(expirationLimit)) {
-            lastProductByPhone.remove(normalizePhone(phone));
-            return null;
-        }
-
-        return entry.productName();
+        return repository.findByPhoneNumber(normalizePhone(phone))
+                .map(context -> new ConversationContextData(
+                        context.getCliente(),
+                        context.getCampana(),
+                        context.getAnuncio(),
+                        context.getJefeResponsable(),
+                        context.getProductoNombre()
+                ))
+                .orElse(null);
     }
 
     private String normalizePhone(String phone) {
         return phone.replaceAll("\\D", "");
     }
 
-    private record ContextEntry(String productName, Instant registeredAt) {
+    public record ConversationContextData(
+            Cliente cliente,
+            CampanaEnvio campana,
+            mx.ipn.sima.model.Anuncio anuncio,
+            mx.ipn.sima.model.Empleado jefeResponsable,
+            String productoNombre
+    ) {
     }
 }

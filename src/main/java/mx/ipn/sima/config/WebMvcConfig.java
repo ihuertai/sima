@@ -22,7 +22,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/gestion-anuncios",
                         "/clientes/**",
                         "/anuncios/**",
-                        "/envio/**"
+                        "/envio/**",
+                        "/solicitudes/**",
+                        "/sucursales/**",
+                        "/usuarios/**",
+                        "/reportes/**"
                 )
                 .excludePathPatterns(
                         "/",
