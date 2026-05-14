@@ -15,6 +15,7 @@
             <a href="/anuncios/lista" class="btn btn-primary">Lista de anuncios</a>
             <a href="/clientes/lista" class="btn btn-primary">Lista de clientes</a>
             <a href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
+            <a href="/auth/logout" class="btn btn-outline-danger">Cerrar sesi&oacute;n</a>
         </div>
     </div>
 
@@ -22,6 +23,7 @@
 
     <div class="card shadow-sm">
         <div class="card-body">
+            <div class="alert alert-danger" th:if="${error}" th:text="${error}"></div>
             <form th:action="@{/envio/guardar}" th:object="${campana}" method="post">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -34,13 +36,7 @@
                             <option value="">Selecciona</option>
                             <option th:each="anuncio : ${anuncios}" th:value="${anuncio.id}" th:text="${anuncio.titulo}"></option>
                         </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Gerente responsable</label>
-                        <select class="form-select" th:field="*{creadoPor.id}" required>
-                            <option value="">Selecciona</option>
-                            <option th:each="gerente : ${gerentes}" th:value="${gerente.id}" th:text="${gerente.nombre}"></option>
-                        </select>
+                        <div class="form-text">La campa&ntilde;a tomar&aacute; autom&aacute;ticamente el gerente responsable del anuncio.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Programada para</label>
@@ -60,14 +56,6 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Facturaci&oacute;n m&iacute;nima</label>
-                        <input type="number" step="0.01" class="form-control" th:field="*{facturacionMin}">
-                    </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Facturaci&oacute;n m&aacute;xima</label>
-                        <input type="number" step="0.01" class="form-control" th:field="*{facturacionMax}">
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label">Tama&ntilde;o de empresa</label>
                         <select class="form-select" th:field="*{tamanoEmpresa}">
                             <option value="">Todos</option>
@@ -76,11 +64,17 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Categor&iacute;a de producto</label>
-                        <input type="text" class="form-control" th:field="*{categoriaProducto}">
+                        <select class="form-select" th:field="*{categoriaProducto}">
+                            <option value="">Todas</option>
+                            <option th:each="categoria : ${categoriasProducto}" th:value="${categoria}" th:text="${categoria}"></option>
+                        </select>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Giro</label>
-                        <input type="text" class="form-control" th:field="*{giro}">
+                        <select class="form-select" th:field="*{giro}">
+                            <option value="">Todos</option>
+                            <option th:each="giroItem : ${giros}" th:value="${giroItem}" th:text="${giroItem}"></option>
+                        </select>
                     </div>
                 </div>
 

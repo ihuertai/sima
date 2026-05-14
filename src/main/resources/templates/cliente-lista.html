@@ -14,6 +14,7 @@
             <a href="/dashboard" class="btn btn-primary">Men&uacute;</a>
             <a th:if="${canManageAds}" href="/anuncios/lista" class="btn btn-primary">Lista de anuncios</a>
             <a th:if="${canManageCampaigns}" href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
+            <a href="/auth/logout" class="btn btn-outline-danger">Cerrar sesi&oacute;n</a>
         </div>
     </div>
 
@@ -33,6 +34,7 @@
                     <th>Facturaci&oacute;n</th>
                     <th>Tama&ntilde;o</th>
                     <th>Categor&iacute;a</th>
+                    <th th:if="${canManageClients}">Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -46,6 +48,14 @@
                     <td th:text="${cliente.facturacionMensual}"></td>
                     <td th:text="${cliente.tamanoEmpresa}"></td>
                     <td th:text="${cliente.categoriaProducto}"></td>
+                    <td th:if="${canManageClients}">
+                        <div class="d-flex gap-2">
+                            <a th:href="@{'/clientes/' + ${cliente.id}}" class="btn btn-sm btn-outline-primary">Editar</a>
+                            <form th:action="@{'/clientes/eliminar/' + ${cliente.id}}" method="post" onsubmit="return confirm('Deseas dar de baja este cliente?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Baja</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
                 </tbody>
             </table>

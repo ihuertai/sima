@@ -14,6 +14,7 @@
             <a href="/dashboard" class="btn btn-primary">Men&uacute;</a>
             <a href="/clientes/lista" class="btn btn-primary">Lista de clientes</a>
             <a th:if="${canManageCampaigns}" href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
+            <a href="/auth/logout" class="btn btn-outline-danger">Cerrar sesi&oacute;n</a>
         </div>
     </div>
 
@@ -32,6 +33,7 @@
                     <th>Fecha</th>
                     <th>Responsable</th>
                     <th>Info extra</th>
+                    <th th:if="${canManageAds}">Acciones</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -43,7 +45,15 @@
                     <td th:text="${a.texto}"></td>
                     <td th:text="${a.fechaPublicacion}"></td>
                     <td th:text="${a.creadoPor != null ? a.creadoPor.nombre : 'Sin asignar'}"></td>
-                    <td th:text="${a.informacionExtraTipo + ' - ' + a.informacionExtraValor}"></td>
+                    <td th:text="${a.informacionExtraTipo + ' - ' + a.informacionExtraValor} "></td>
+                    <td th:if="${canManageAds}">
+                        <div class="d-flex gap-2">
+                            <a th:href="@{'/anuncios/' + ${a.id}}" class="btn btn-sm btn-outline-primary">Editar</a>
+                            <form th:action="@{'/anuncios/eliminar/' + ${a.id}}" method="post" onsubmit="return confirm('Deseas dar de baja este anuncio?');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Baja</button>
+                            </form>
+                        </div>
+                    </td>
                 </tr>
                 </tbody>
             </table>

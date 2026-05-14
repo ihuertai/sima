@@ -14,6 +14,7 @@
             <a href="/dashboard" class="btn btn-primary">Men&uacute;</a>
             <a href="/solicitudes" class="btn btn-primary">Solicitudes</a>
             <a th:if="${canManageCampaigns}" href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
+            <a href="/auth/logout" class="btn btn-outline-danger">Cerrar sesi&oacute;n</a>
         </div>
     </div>
 
@@ -37,7 +38,12 @@
                             <tbody>
                             <tr th:each="campana : ${campanas}">
                                 <td th:text="${campana.nombre}"></td>
-                                <td th:text="${campana.estado}"></td>
+                                <td>
+                                    <div th:text="${campana.estado}"></div>
+                                    <small class="text-muted"
+                                           th:if="${campana.programadaPara != null}"
+                                           th:text="${#temporals.format(campana.programadaPara, 'yyyy-MM-dd HH:mm')}"></small>
+                                </td>
                                 <td th:text="${campana.enviosExitosos + ' enviados / ' + campana.enviosError + ' error'}"></td>
                             </tr>
                             <tr th:if="${#lists.isEmpty(campanas)}">

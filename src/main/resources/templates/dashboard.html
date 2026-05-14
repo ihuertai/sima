@@ -16,6 +16,9 @@
                 <a href="/usuarios" class="btn btn-primary btn-sm">Usuarios</a>
                 <a href="/sucursales" class="btn btn-primary btn-sm">Sucursal</a>
             </div>
+            <div class="dashboard-logout mt-2">
+                <a href="/auth/logout" class="btn btn-outline-danger btn-sm">Cerrar sesi&oacute;n</a>
+            </div>
             <small class="text-muted d-block mt-2" th:text="${#strings.listJoin(currentUser.roles(), ', ')}"></small>
         </div>
     </div>

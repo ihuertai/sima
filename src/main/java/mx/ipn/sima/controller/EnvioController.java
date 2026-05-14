@@ -30,21 +30,23 @@ public class EnvioController {
         roleAccessService.requireCampaignManagement(session);
         CampanaEnvio campana = new CampanaEnvio();
         campana.setAnuncio(new Anuncio());
-        campana.setCreadoPor(new Empleado());
         campana.setSucursal(new Sucursal());
-        model.addAttribute("campana", campana);
-        model.addAttribute("anuncios", almacenService.getAnuncios());
-        model.addAttribute("gerentes", almacenService.getGerentes());
-        model.addAttribute("sucursales", almacenService.getSucursales());
-        model.addAttribute("tamanos", TamanoEmpresa.values());
+        cargarFormulario(model, campana);
         return "envio-form";
     }
 
     @PostMapping("/guardar")
-    public String guardarCampana(@ModelAttribute CampanaEnvio campana, HttpSession session) {
+    public String guardarCampana(@ModelAttribute CampanaEnvio campana, HttpSession session, Model model) {
         roleAccessService.requireCampaignManagement(session);
-        CampanaEnvio saved = campanaService.crearCampana(campana);
-        return "redirect:/envio/resultado/" + saved.getId();
+        try {
+            CampanaEnvio saved = campanaService.crearCampana(campana);
+            return "redirect:/envio/resultado/" + saved.getId();
+        } catch (IllegalArgumentException ex) {
+            ensureNestedReferences(campana);
+            model.addAttribute("error", ex.getMessage());
+            cargarFormulario(model, campana);
+            return "envio-form";
+        }
     }
 
     @GetMapping("/lista")
@@ -69,6 +71,24 @@ public class EnvioController {
         model.addAttribute("destinatarios", campanaService.getDestinatarios(id));
         model.addAttribute("resultado", buildResultMessage(campana));
         return "envio-resultado";
+    }
+
+    private void cargarFormulario(Model model, CampanaEnvio campana) {
+        model.addAttribute("campana", campana);
+        model.addAttribute("anuncios", almacenService.getAnuncios());
+        model.addAttribute("sucursales", almacenService.getSucursales());
+        model.addAttribute("tamanos", TamanoEmpresa.values());
+        model.addAttribute("categoriasProducto", almacenService.getCategoriasProductoDisponibles());
+        model.addAttribute("giros", almacenService.getGirosDisponibles());
+    }
+
+    private void ensureNestedReferences(CampanaEnvio campana) {
+        if (campana.getAnuncio() == null) {
+            campana.setAnuncio(new Anuncio());
+        }
+        if (campana.getSucursal() == null) {
+            campana.setSucursal(new Sucursal());
+        }
     }
 
     private String buildResultMessage(CampanaEnvio campana) {

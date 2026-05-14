@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -88,6 +89,13 @@ public class AlmacenService {
     }
 
     @Transactional
+    public void eliminarCliente(Long id) {
+        Cliente cliente = getCliente(id);
+        cliente.setActive(false);
+        clienteRepository.save(cliente);
+    }
+
+    @Transactional
     public void guardarAnuncio(Anuncio anuncio) {
         if (anuncio.getFechaPublicacion() == null) {
             anuncio.setFechaPublicacion(LocalDate.now());
@@ -96,6 +104,13 @@ public class AlmacenService {
             anuncio.setInformacionExtraTipo(InformacionExtraTipo.TEXTO);
         }
         anuncio.setCreadoPor(resolveEmpleado(anuncio.getCreadoPor()));
+        anuncioRepository.save(anuncio);
+    }
+
+    @Transactional
+    public void eliminarAnuncio(Long id) {
+        Anuncio anuncio = getAnuncio(id);
+        anuncio.setActive(false);
         anuncioRepository.save(anuncio);
     }
 
@@ -177,6 +192,28 @@ public class AlmacenService {
         return empleadoRepository.findAllByActiveTrueAndRolOperativoOrderByNombreAsc(RolOperativo.GERENTE);
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getCategoriasProductoDisponibles() {
+        return clienteRepository.findAllByActiveTrueOrderByNombreAsc().stream()
+                .map(Cliente::getCategoriaProducto)
+                .filter(this::hasText)
+                .map(String::trim)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getGirosDisponibles() {
+        return clienteRepository.findAllByActiveTrueOrderByNombreAsc().stream()
+                .map(Cliente::getGiro)
+                .filter(this::hasText)
+                .map(String::trim)
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
+    }
+
     private Sucursal resolveSucursal(Sucursal sucursal) {
         if (sucursal == null || sucursal.getId() == null) {
             return null;
@@ -195,5 +232,9 @@ public class AlmacenService {
 
     private String normalizePhone(String phone) {
         return phone == null ? "" : phone.replaceAll("\\D", "");
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

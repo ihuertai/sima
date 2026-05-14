@@ -11,6 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -32,10 +33,21 @@ public class ClienteController {
         Cliente cliente = new Cliente();
         cliente.setSucursal(new Sucursal());
         cliente.setJefeSucursal(new Empleado());
-        model.addAttribute("cliente", cliente);
-        model.addAttribute("sucursales", almacenService.getSucursales());
-        model.addAttribute("jefesSucursal", almacenService.getJefesSucursal());
-        model.addAttribute("tamanos", TamanoEmpresa.values());
+        cargarFormulario(model, cliente);
+        return "cliente-form";
+    }
+
+    @GetMapping("/{id}")
+    public String editarCliente(@PathVariable Long id, Model model, HttpSession session) {
+        roleAccessService.requireClientManagement(session);
+        Cliente cliente = almacenService.getCliente(id);
+        if (cliente.getSucursal() == null) {
+            cliente.setSucursal(new Sucursal());
+        }
+        if (cliente.getJefeSucursal() == null) {
+            cliente.setJefeSucursal(new Empleado());
+        }
+        cargarFormulario(model, cliente);
         return "cliente-form";
     }
 
@@ -50,5 +62,19 @@ public class ClienteController {
         roleAccessService.requireClientManagement(session);
         almacenService.guardarCliente(cliente);
         return "redirect:/clientes/lista";
+    }
+
+    @PostMapping("/eliminar/{id}")
+    public String eliminarCliente(@PathVariable Long id, HttpSession session) {
+        roleAccessService.requireClientManagement(session);
+        almacenService.eliminarCliente(id);
+        return "redirect:/clientes/lista";
+    }
+
+    private void cargarFormulario(Model model, Cliente cliente) {
+        model.addAttribute("cliente", cliente);
+        model.addAttribute("sucursales", almacenService.getSucursales());
+        model.addAttribute("jefesSucursal", almacenService.getJefesSucursal());
+        model.addAttribute("tamanos", TamanoEmpresa.values());
     }
 }

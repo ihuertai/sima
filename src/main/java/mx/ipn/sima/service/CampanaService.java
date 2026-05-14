@@ -36,10 +36,14 @@ public class CampanaService {
 
     @Transactional
     public CampanaEnvio crearCampana(CampanaEnvio campana) {
-        campana.setAnuncio(almacenService.getAnuncio(campana.getAnuncio().getId()));
-        campana.setCreadoPor(campana.getCreadoPor() != null && campana.getCreadoPor().getId() != null
-                ? almacenService.getEmpleado(campana.getCreadoPor().getId())
-                : null);
+        validateCampaign(campana);
+        Anuncio anuncio = almacenService.getAnuncio(campana.getAnuncio().getId());
+        if (anuncio.getCreadoPor() == null || anuncio.getCreadoPor().getId() == null) {
+            throw new IllegalArgumentException("El anuncio seleccionado no tiene un gerente responsable asignado.");
+        }
+
+        campana.setAnuncio(anuncio);
+        campana.setCreadoPor(anuncio.getCreadoPor());
         campana.setSucursal(campana.getSucursal() != null && campana.getSucursal().getId() != null
                 ? almacenService.getSucursal(campana.getSucursal().getId())
                 : null);
@@ -160,6 +164,18 @@ public class CampanaService {
                 EstadoCampana.PROGRAMADA,
                 LocalDateTime.now()
         );
+    }
+
+    private void validateCampaign(CampanaEnvio campana) {
+        if (campana == null) {
+            throw new IllegalArgumentException("No fue posible procesar la campana.");
+        }
+        if (campana.getNombre() == null || campana.getNombre().isBlank()) {
+            throw new IllegalArgumentException("Debes capturar el nombre de la campana.");
+        }
+        if (campana.getAnuncio() == null || campana.getAnuncio().getId() == null) {
+            throw new IllegalArgumentException("Debes seleccionar un anuncio.");
+        }
     }
 
     private boolean matches(CampanaEnvio campana, Cliente cliente) {

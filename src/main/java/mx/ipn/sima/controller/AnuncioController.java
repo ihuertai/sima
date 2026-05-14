@@ -10,6 +10,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -30,16 +31,33 @@ public class AnuncioController {
         roleAccessService.requireAdsManagement(session);
         Anuncio anuncio = new Anuncio();
         anuncio.setCreadoPor(new Empleado());
-        model.addAttribute("anuncio", anuncio);
-        model.addAttribute("gerentes", almacenService.getGerentes());
-        model.addAttribute("tiposExtra", InformacionExtraTipo.values());
+        cargarFormulario(model, anuncio);
+        return "anuncio-form";
+    }
+
+    @GetMapping("/{id}")
+    public String editarAnuncio(@PathVariable Long id, Model model, HttpSession session) {
+        roleAccessService.requireAdsManagement(session);
+        Anuncio anuncio = almacenService.getAnuncio(id);
+        if (anuncio.getCreadoPor() == null) {
+            anuncio.setCreadoPor(new Empleado());
+        }
+        cargarFormulario(model, anuncio);
         return "anuncio-form";
     }
 
     @PostMapping("/guardar")
     public String guardarAnuncio(@ModelAttribute Anuncio anuncio, HttpSession session) {
         roleAccessService.requireAdsManagement(session);
+        anuncio.setFechaPublicacion(null);
         almacenService.guardarAnuncio(anuncio);
+        return "redirect:/anuncios/lista";
+    }
+
+    @PostMapping("/eliminar/{id}")
+    public String eliminarAnuncio(@PathVariable Long id, HttpSession session) {
+        roleAccessService.requireAdsManagement(session);
+        almacenService.eliminarAnuncio(id);
         return "redirect:/anuncios/lista";
     }
 
@@ -47,5 +65,11 @@ public class AnuncioController {
     public String listarAnuncios(Model model) {
         model.addAttribute("anuncios", almacenService.getAnuncios());
         return "anuncio-lista";
+    }
+
+    private void cargarFormulario(Model model, Anuncio anuncio) {
+        model.addAttribute("anuncio", anuncio);
+        model.addAttribute("gerentes", almacenService.getGerentes());
+        model.addAttribute("tiposExtra", InformacionExtraTipo.values());
     }
 }

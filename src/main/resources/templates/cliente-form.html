@@ -15,14 +15,16 @@
             <a href="/clientes/lista" class="btn btn-primary">Lista de clientes</a>
             <a th:if="${canManageAds}" href="/anuncios/nuevo" class="btn btn-primary">Anuncios</a>
             <a th:if="${canManageCampaigns}" href="/envio/lista" class="btn btn-primary">Campa&ntilde;as</a>
+            <a href="/auth/logout" class="btn btn-outline-danger">Cerrar sesi&oacute;n</a>
         </div>
     </div>
 
-    <h3 class="mb-4">Registrar Cliente</h3>
+    <h3 class="mb-4" th:text="${cliente.id != null ? 'Editar Cliente' : 'Registrar Cliente'}">Registrar Cliente</h3>
 
     <div class="card shadow-sm">
         <div class="card-body">
             <form th:action="@{/clientes/guardar}" th:object="${cliente}" method="post">
+                <input type="hidden" th:field="*{id}">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Nombre</label>
@@ -74,7 +76,10 @@
                         <input type="text" class="form-control" th:field="*{giro}">
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary mt-4">Guardar</button>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary" th:text="${cliente.id != null ? 'Guardar cambios' : 'Guardar'}">Guardar</button>
+                    <a href="/clientes/lista" class="btn btn-secondary">Cancelar</a>
+                </div>
             </form>
         </div>
     </div>
